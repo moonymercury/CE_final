@@ -2,13 +2,13 @@ import React, { useState } from "react";
 import { encryptAndSendTicket } from "./ticket_encryption"; // 相對路徑視你的專案結構調整
 
 const rsaPublicKeyPem = `-----BEGIN PUBLIC KEY-----
-MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA5dpxQ1xJ546q7YDUz/jr
-SZ6j2eXFVo6TfXkbPfffgRYWcjri4zayxpMY8+lsyBAHAo9zn/ioWAZqE22+9mcU
-KG8zUiy4GK8UOthR3glRnh/vMlPU3w2Nqw8pa+HG5El3HpiWr6J263gsJ7lAAOxB
-2hX5fRVp9CrfCdIBajXQcU8DbGbZvx7ppahcqPg2mrVQ16JpHrsSH2NaAl1uHDLT
-hY96nKRjOkwVlV/7NWeJ8ut9m3WeGrtG023uIGEDg7/DiWv7NRlBKq7lRIksHV6C
-1fxaP4wPgrJfCkFfhRrPpb5GV55lAV4f6pE83zJuw47Jep39bCCsptBnZSSKTnUc
-6QIDAQAB
+MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA37vQ6u8I6d0KgEpbBV5z
+Xzq3Y4VGUsKZ9HSEG30OV2TlcRndXg+jHktYn9FGv0NLXpZdydZGBMmSXGW5SW2s
+6VzXKhuCsRzqW4fk4uVhqluIc33fE3bIu88ZcLlAgeBHgLvD2Mrqf2Rmg5bj5TmY
+bNWw9R5LNIaTYIGLOvR7TUMSbfBTBPwXS577OQY5039Lc2c5dtimB6/VchUTix7i
+VjhTKPLnoBncdwp+0JfpGGguXV+Mq3RLXGWiDba7Sh1N7cOgKzgPMFbNbjn5F7Th
+pDKAS3i/2fbHv5d2pJEDEoEiD2KM3dmQEbi45DiGBFw98IX4Pvb+AUae2WEO+XPU
+9wIDAQAB
 -----END PUBLIC KEY-----`;
 
 function TicketPurchaseForm({ movieList }) {
