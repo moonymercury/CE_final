@@ -1,129 +1,114 @@
 from flask import Flask, request, jsonify
-import os
-from flask import Flask, request, jsonify
+from models import db, app, User
 import os
 from flask_cors import CORS  # ← 新增這行
+from kms_utils import request_kms_decryption
+import bcrypt
+from Crypto.Signature import pkcs1_15
+from Crypto.Hash import SHA256
+from Crypto.PublicKey import RSA
 
-app = Flask(__name__)
 CORS(app)  # ← 加這行就能允許所有來源 (開發用安全即可)
-
-# 模擬資料庫
-users = {}  # username -> {password, pubkey}
 
 @app.route("/register", methods=["POST"])
 def register():
     data = request.json
     username = data["username"]
     password = data["password"]
-    pubkey = data["public_key"]
-    
-    if username in users:
-        return jsonify({"error": "User already exists"}), 400
+    tx_password = data["tx_password"]
+    public_key = data["public_key"]
 
-    users[username] = {"password": password, "public_key": pubkey}
-    return jsonify({"message": "User registered successfully"}), 200
+    if User.query.filter_by(username=username).first():
+        return jsonify({"error": "User exists"}), 400
+
+    user = User(
+        username=username,
+        password_hash=bcrypt.hashpw(password.encode(), bcrypt.gensalt()),
+        tx_password_hash=bcrypt.hashpw(tx_password.encode(), bcrypt.gensalt()),
+        public_key=public_key
+    )
+    db.session.add(user)
+    db.session.commit()
+    return jsonify({"message": "Registered"})
 
 @app.route("/login", methods=["POST"])
 def login():
     data = request.json
     username = data["username"]
     password = data["password"]
-    signature = bytes.fromhex(data["signature"])
+    signature = data["signature"]
     challenge = data["challenge"]
 
-    if username not in users or users[username]["password"] != password:
+    user = User.query.filter_by(username=username).first()
+    if not user or not bcrypt.checkpw(password.encode(), user.password_hash):
         return jsonify({"error": "Invalid credentials"}), 401
 
-    from Crypto.PublicKey import RSA
-    from Crypto.Signature import pkcs1_15
-    from Crypto.Hash import SHA256
-
-    pubkey = RSA.import_key(users[username]["public_key"])
-    h = SHA256.new(challenge.encode())
+    # 嘗試將 signature 解成 bytes（支援 hex 或 base64）
+    try:
+        if all(c in "0123456789abcdefABCDEF" for c in signature.strip()):  # hex
+            signature_bytes = bytes.fromhex(signature)
+        else:  # base64 fallback
+            import base64
+            signature_bytes = base64.b64decode(signature)
+    except Exception as e:
+        return jsonify({"error": "Invalid signature format", "detail": str(e)}), 400
 
     try:
-        pkcs1_15.new(pubkey).verify(h, signature)
+        pubkey = RSA.import_key(user.public_key)
+        h = SHA256.new(challenge.encode())
+        pkcs1_15.new(pubkey).verify(h, signature_bytes)
         return jsonify({"message": "Login success"}), 200
     except (ValueError, TypeError):
         return jsonify({"error": "Invalid signature"}), 403
-    
+
 @app.route("/submit-ticket", methods=["POST"])
 def submit_ticket():
+    import base64, json
+    import boto3
+    from Crypto.Cipher import AES
+    from flask import request, jsonify
+
     data = request.json
 
-    # Step 1: base64 decode 加密資料
-    import base64, json
-    from Crypto.Cipher import AES, PKCS1_OAEP
-    from Crypto.PublicKey import RSA
-    from Crypto.Hash import SHA256
-
+    # Step 1: decode base64
     encrypted_session_key = base64.b64decode(data["encryptedSessionKey"])
     ciphertext = base64.b64decode(data["ciphertext"])
     iv = base64.b64decode(data["iv"])
     aad = base64.b64decode(data["aad"])
 
-    # Step 2: 載入私鑰並解密 session key
-    with open("private.pem", "rb") as f:
-        private_key = RSA.import_key(f.read())
-    rsa_cipher = PKCS1_OAEP.new(private_key, hashAlgo=SHA256)
-    session_key = rsa_cipher.decrypt(encrypted_session_key)
-
-    # Step 3: 使用 AES-GCM 解密票券資料
-    from Crypto.Cipher import AES
-    aes_cipher = AES.new(session_key, AES.MODE_GCM, nonce=iv)
-    aes_cipher.update(aad)
+    # Step 2: 使用 AWS KMS 解密 session key
     try:
+        kms = boto3.client("kms", region_name="ap-northeast-1")  # 改成你的區域
+        response = kms.decrypt(CiphertextBlob=encrypted_session_key)
+        session_key = response["Plaintext"]
+    except Exception as e:
+        return jsonify({"error": "KMS 解密失敗", "detail": str(e)}), 500
+
+    # Step 3: 用 session key 解密票券資料（AES-GCM）
+    try:
+        aes_cipher = AES.new(session_key, AES.MODE_GCM, nonce=iv)
+        aes_cipher.update(aad)
         plaintext = aes_cipher.decrypt_and_verify(ciphertext[:-16], ciphertext[-16:])
         ticket_info = json.loads(plaintext.decode())
         print("🎫 成功解密票券：", ticket_info)
         return jsonify({"status": "success", "ticket": ticket_info}), 200
     except Exception as e:
-        return jsonify({"error": "decryption failed", "detail": str(e)}), 400
+        return jsonify({"error": "資料解密失敗", "detail": str(e)}), 400
 
-if __name__ == "__main__":
-    app.run(debug=True)
-
-app = Flask(__name__)
-
-# 模擬資料庫
-users = {}  # username -> {password, pubkey}
-
-@app.route("/register", methods=["POST"])
-def register():
+@app.route("/kms/encrypt", methods=["POST"])
+def encrypt_session_key():
+    import boto3, base64
+    kms = boto3.client("kms", region_name="ap-southeast-2")
     data = request.json
-    username = data["username"]
-    password = data["password"]
-    pubkey = data["public_key"]
-    
-    if username in users:
-        return jsonify({"error": "User already exists"}), 400
+    raw_key = base64.b64decode(data["session_key"])
 
-    users[username] = {"password": password, "public_key": pubkey}
-    return jsonify({"message": "User registered successfully"}), 200
+    response = kms.encrypt(
+        KeyId="alias/session-key",  # 替換成你的 KMS key alias 或 key ID
+        Plaintext=raw_key
+    )
 
-@app.route("/login", methods=["POST"])
-def login():
-    data = request.json
-    username = data["username"]
-    password = data["password"]
-    signature = bytes.fromhex(data["signature"])
-    challenge = data["challenge"]
-
-    if username not in users or users[username]["password"] != password:
-        return jsonify({"error": "Invalid credentials"}), 401
-
-    from Crypto.PublicKey import RSA
-    from Crypto.Signature import pkcs1_15
-    from Crypto.Hash import SHA256
-
-    pubkey = RSA.import_key(users[username]["public_key"])
-    h = SHA256.new(challenge.encode())
-
-    try:
-        pkcs1_15.new(pubkey).verify(h, signature)
-        return jsonify({"message": "Login success"}), 200
-    except (ValueError, TypeError):
-        return jsonify({"error": "Invalid signature"}), 403
+    encrypted_key = base64.b64encode(response["CiphertextBlob"]).decode()
+    return jsonify({ "encrypted_session_key": encrypted_key })
 
 if __name__ == "__main__":
     app.run(debug=True)
