@@ -1,0 +1,32 @@
+.seat-map {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 10px 0;
+}
+.seat-row {
+  display: flex;
+  gap: 4px;
+}
+.seat {
+  width: 28px;
+  height: 28px;
+  font-size: 10px;
+  text-align: center;
+  line-height: 28px;
+  border-radius: 4px;
+  cursor: pointer;
+  background-color: #ddd;
+}
+.seat.available {
+  background-color: #eee;
+}
+.seat.selected {
+  background-color: #4fc3f7;
+  font-weight: bold;
+}
+.seat.unavailable {
+  background-color: #c62828;
+  color: white;
+  cursor: not-allowed;
+}
