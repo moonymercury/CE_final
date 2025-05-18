@@ -71,31 +71,13 @@ def submit_ticket():
     from flask import request, jsonify
 
     data = request.json
-    print("🔑 收到的資料：", data)
-    username = data["username"]
-    tx_password = data["tx_password"]
-    signature = data["signature"]
-    user = User.query.filter_by(username=username).first()
-
-    if not user:
-        return jsonify({"error": "找不到使用者"}), 404
-
-    if not bcrypt.checkpw(tx_password.encode(), user.tx_password_hash):
-        return jsonify({"error": "交易密碼錯誤", "tx_password": str(tx_password.encode()), "user.tx_password_hash": str(user.tx_password_hash)}), 401
-
-    # 驗證簽章
-    try:
-        pubkey = RSA.import_key(user.public_key)
-        h = SHA256.new(data["transactionPayload"].encode())
-        pkcs1_15.new(pubkey).verify(h, bytes.fromhex(signature))
-    except Exception as e:
-        return jsonify({"error": "簽章驗證失敗", "detail": str(e)}), 403
-
+    
     # Step 1: decode base64
     encrypted_session_key = base64.b64decode(data["encryptedSessionKey"])
     ciphertext = base64.b64decode(data["ciphertext"])
     iv = base64.b64decode(data["iv"])
     aad = base64.b64decode(data["aad"])
+    signature = data["signature"]
 
     # Step 2: 使用 AWS KMS 解密 session key
     try:
@@ -104,25 +86,48 @@ def submit_ticket():
         session_key = response["Plaintext"]
     except Exception as e:
         return jsonify({"error": "KMS 解密失敗", "detail": str(e)}), 500
-
-    # Step 3: 用 session key 解密票券資料（AES-GCM）
+    
+    # Step 3: 解密交易資料
     try:
         aes_cipher = AES.new(session_key, AES.MODE_GCM, nonce=iv)
         aes_cipher.update(aad)
         plaintext = aes_cipher.decrypt_and_verify(ciphertext[:-16], ciphertext[-16:])
-        ticket_info = json.loads(plaintext.decode())
-        print("🎫 成功解密票券：", ticket_info)
-        # Step 4: 驗證票券資料，檢查票券是否存在
-        # 取得使用者
-        user = User.query.filter_by(username=ticket_info["username"]).first()
-        if not user:
-            return jsonify({"error": "找不到使用者"}), 404
+        transaction_payload = plaintext.decode()
+        transaction_data = json.loads(transaction_payload)
+    except Exception as e:
+        return jsonify({"error": "資料解密失敗", "detail": str(e)}), 400
 
+    # Step 4: 從解密內容中取出帳號與密碼，查詢使用者
+    username = transaction_data.get("username")
+    tx_password = transaction_data.get("tx_password")
+
+    user = User.query.filter_by(username=username).first()
+    if not user:
+        return jsonify({"error": "找不到使用者"}), 404
+
+    if not bcrypt.checkpw(tx_password.encode(), user.tx_password_hash):
+        return jsonify({"error": "交易密碼錯誤"}), 401
+
+    # Step 5: 驗證簽章（必須針對原始明文做簽章驗證）
+    try:
+        pubkey = RSA.import_key(user.public_key)
+        h = SHA256.new(transaction_payload.encode())
+        if isinstance(signature, str):
+            signature_bytes = bytes.fromhex(signature)
+        else:
+            signature_bytes = signature
+        pkcs1_15.new(pubkey).verify(h, signature_bytes)
+
+    except Exception as e:
+        return jsonify({"error": "簽章驗證失敗", "detail": str(e)}), 403
+
+    # Step 6: 查詢票券資訊
+    try:
         # 查詢場次與座位
         seat_entry = MovieSeat.query.filter_by(
-            movie=ticket_info["movie"],
-            showtime=ticket_info["showtime"],
-            seat_code=ticket_info["seat"]
+            movie=transaction_data["movie"],
+            showtime=transaction_data["showtime"],
+            seat_code=transaction_data["seat"]
         ).first()
         if not seat_entry or seat_entry.status != "available":
             return jsonify({"error": "座位已售出或不存在"}), 400
@@ -138,12 +143,13 @@ def submit_ticket():
             seat=seat_entry.seat_code,
             amount=seat_entry.price
         )
-
+        
         # 更新資料庫：扣款、座位狀態、儲存票券
         user.balance -= seat_entry.price
         seat_entry.status = "sold"
         db.session.add(ticket)
         db.session.commit()
+        
         return jsonify({
             "success": True,
             "ticket_code": ticket_code,
@@ -151,9 +157,8 @@ def submit_ticket():
             "seat": ticket.seat,
             "amount": ticket.amount
         })
-    
     except Exception as e:
-        return jsonify({"error": "資料解密失敗", "detail": str(e)}), 400
+        return jsonify({"error": "交易失敗", "detail": str(e)}), 500
     
 @app.route("/kms/encrypt", methods=["POST"])
 def encrypt_session_key():

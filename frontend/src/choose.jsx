@@ -2,16 +2,6 @@ import React, { useState, useEffect } from "react";
 import { encryptAndSendTicket } from "./ticket_encryption";
 import SeatSelector from "./SeatSelector";
 
-const rsaPublicKeyPem = `-----BEGIN PUBLIC KEY-----
-MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA37vQ6u8I6d0KgEpbBV5z
-Xzq3Y4VGUsKZ9HSEG30OV2TlcRndXg+jHktYn9FGv0NLXpZdydZGBMmSXGW5SW2s
-6VzXKhuCsRzqW4fk4uVhqluIc33fE3bIu88ZcLlAgeBHgLvD2Mrqf2Rmg5bj5TmY
-bNWw9R5LNIaTYIGLOvR7TUMSbfBTBPwXS577OQY5039Lc2c5dtimB6/VchUTix7i
-VjhTKPLnoBncdwp+0JfpGGguXV+Mq3RLXGWiDba7Sh1N7cOgKzgPMFbNbjn5F7Th
-pDKAS3i/2fbHv5d2pJEDEoEiD2KM3dmQEbi45DiGBFw98IX4Pvb+AUae2WEO+XPU
-9wIDAQAB
------END PUBLIC KEY-----`;
-
 function TicketPurchaseForm({ movieList }) {
   const [selectedMovie, setSelectedMovie] = useState(null);
   const [showtimes, setShowtimes] = useState([]);
@@ -62,7 +52,7 @@ function TicketPurchaseForm({ movieList }) {
     };
 
     try {
-      await encryptAndSendTicket(transactionData, txPassword);
+      await encryptAndSendTicket(transactionData);
       alert("加密並送出成功！");
     } catch (err) {
       console.error("加密或送出失敗", err);

@@ -1,4 +1,4 @@
-export async function encryptAndSendTicket(transactionData, txPassword) {
+export async function encryptAndSendTicket(transactionData) {
   function arrayBufferToBase64(buffer) {
     return btoa(String.fromCharCode(...new Uint8Array(buffer)));
   }
@@ -53,7 +53,15 @@ export async function encryptAndSendTicket(transactionData, txPassword) {
     ["sign"]
   );
 
-  const transactionPayload = JSON.stringify(transactionData);
+  const transactionPayload = JSON.stringify({
+    movie: transactionData.movie,
+    showtime: transactionData.showtime,
+    seat: transactionData.seat,
+    price: transactionData.price,
+    username: transactionData.username,
+    tx_password: transactionData.tx_password
+  });
+
   const signature = await window.crypto.subtle.sign(
     { name: "RSASSA-PKCS1-v1_5" },
     privateKey,
@@ -67,13 +75,8 @@ export async function encryptAndSendTicket(transactionData, txPassword) {
     aad: arrayBufferToBase64(aad),
     encryptedSessionKey: encryptedSessionKey,
     
-    signature: signatureHex,
-    username: localStorage.getItem("username"),       // 請在登入時記得設這個
-    tx_password: txPassword,                          // 使用者輸入的交易密碼
-    transactionPayload,
-    transactionData
+    signature: signatureHex
   };
-
   await fetch("http://127.0.0.1:5000/submit-ticket", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
