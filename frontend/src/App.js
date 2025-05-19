@@ -28,16 +28,25 @@ function App() {
     <div className="App">
       <h1>安全購票系統</h1>
       <nav>
-        <button onClick={() => setPage("login")} disabled={isLoggedIn}>登入</button>
-        <button onClick={() => setPage("register")}>註冊</button>
-        <button
-          onClick={() => setPage("ticket")}
-          disabled={!isLoggedIn}
-          style={{ opacity: isLoggedIn ? 1 : 0 }}
-        >
-          購票
-        </button>
+        {!isLoggedIn ? (
+          <>
+            <button onClick={() => setPage("login")}>登入</button>
+            <button onClick={() => setPage("register")}>註冊</button>
+          </>
+        ) : (
+          <button
+            onClick={() => {
+              localStorage.clear();            // 清空 localStorage
+              setIsLoggedIn(false);            // 還原登入狀態
+              setUsername("");                 // 清除帳號名
+              setPage("login");                // 導回登入頁
+            }}
+          >
+            登出
+          </button>
+        )}
       </nav>
+
 
       {page === "login" && (
         <LoginForm onLoginSuccess={handleLoginSuccess} />

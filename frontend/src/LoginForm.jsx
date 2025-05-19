@@ -4,13 +4,23 @@ import React, { useState } from "react";
 function LoginForm({ privateKey, onLoginSuccess }) {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
-
+  const [uploadedKeyFile, setUploadedKeyFile] = useState(null);
+  
   const handleLogin = async () => {
-    const b64PrivateKey = localStorage.getItem("privateKey");
+    let b64PrivateKey = localStorage.getItem("privateKey");
+
+    // 若 localStorage 沒有，檢查是否有上傳
+    if (!b64PrivateKey && uploadedKeyFile) {
+      const fileBuffer = await uploadedKeyFile.arrayBuffer();
+      b64PrivateKey = btoa(String.fromCharCode(...new Uint8Array(fileBuffer)));
+      localStorage.setItem("privateKey", b64PrivateKey);
+    }
+
     if (!b64PrivateKey) {
-      alert("請先註冊");
+      alert("請先註冊或上傳您的私鑰");
       return;
     }
+
     const raw = Uint8Array.from(atob(b64PrivateKey), c => c.charCodeAt(0));
     const privateKey = await window.crypto.subtle.importKey(
         "pkcs8",
@@ -54,6 +64,8 @@ function LoginForm({ privateKey, onLoginSuccess }) {
       <h2>登入</h2>
       <input placeholder="帳號" value={username} onChange={(e) => setUsername(e.target.value)} />
       <input type="password" placeholder="密碼" value={password} onChange={(e) => setPassword(e.target.value)} />
+      <p>請上傳private key：</p>
+      <input type="file" accept=".key" onChange={(e) => setUploadedKeyFile(e.target.files[0])} />
       <button onClick={handleLogin}>登入</button>
     </div>
   );
