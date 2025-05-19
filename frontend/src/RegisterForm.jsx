@@ -1,7 +1,7 @@
 // RegisterForm.jsx
 import React, { useState } from "react";
 
-function RegisterForm({ onKeyGenerated }) {
+function RegisterForm({ onKeyGenerated, onRegisterSuccess }) {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [txPassword, setTxPassword] = useState("");
@@ -46,6 +46,7 @@ function RegisterForm({ onKeyGenerated }) {
         alert("✅ 註冊成功");
         const pkcs8 = await window.crypto.subtle.exportKey("pkcs8", keyPair.privateKey);
         localStorage.setItem("privateKey", btoa(String.fromCharCode(...new Uint8Array(pkcs8))));
+        onRegisterSuccess();
     } else {
       alert("❌ 註冊失敗：" + result.error);
     }

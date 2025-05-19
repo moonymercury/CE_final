@@ -8,7 +8,7 @@ function LoginForm({ privateKey, onLoginSuccess }) {
   const handleLogin = async () => {
     const b64PrivateKey = localStorage.getItem("privateKey");
     if (!b64PrivateKey) {
-      alert("❗ 尚未生成私鑰，請先註冊");
+      alert("請先註冊");
       return;
     }
     const raw = Uint8Array.from(atob(b64PrivateKey), c => c.charCodeAt(0));
@@ -42,16 +42,16 @@ function LoginForm({ privateKey, onLoginSuccess }) {
 
     const result = await res.json();
     if (res.ok) {
-      alert("✅ 登入成功");
+      alert("登入成功");
       onLoginSuccess(username);
     } else {
-      alert("❌ 登入失敗：" + result.error);
+      alert("帳號或密碼錯誤");
     }
   };
 
   return (
     <div>
-      <h2>🔐 登入</h2>
+      <h2>登入</h2>
       <input placeholder="帳號" value={username} onChange={(e) => setUsername(e.target.value)} />
       <input type="password" placeholder="密碼" value={password} onChange={(e) => setPassword(e.target.value)} />
       <button onClick={handleLogin}>登入</button>

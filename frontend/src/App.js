@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import TicketPurchaseForm from "./choose";
 import LoginForm from "./LoginForm";
 import RegisterForm from "./RegisterForm";
+import "./App.css";
 
 function App() {
   const [page, setPage] = useState("login");
@@ -25,7 +26,7 @@ function App() {
 
   return (
     <div className="App">
-      <h1>🎟️ 安全購票系統</h1>
+      <h1>安全購票系統</h1>
       <nav>
         <button onClick={() => setPage("login")} disabled={isLoggedIn}>登入</button>
         <button onClick={() => setPage("register")}>註冊</button>
@@ -41,7 +42,7 @@ function App() {
       {page === "login" && (
         <LoginForm onLoginSuccess={handleLoginSuccess} />
       )}
-      {page === "register" && <RegisterForm />}
+      {page === "register" && <RegisterForm onRegisterSuccess={() => setPage("login")} />}
       {page === "ticket" && isLoggedIn && (
         <TicketPurchaseForm movieList={movieList} />
       )}
