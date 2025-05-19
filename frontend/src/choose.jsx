@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { encryptAndSendTicket } from "./ticket_encryption";
 import SeatSelector from "./SeatSelector";
 
-function TicketPurchaseForm({ movieList }) {
+function TicketPurchaseForm({ movieList, onSuccess }) {
   const [selectedMovie, setSelectedMovie] = useState(null);
   const [showtimes, setShowtimes] = useState([]);
   const [selectedShowtime, setSelectedShowtime] = useState("");
@@ -52,11 +52,23 @@ function TicketPurchaseForm({ movieList }) {
     };
 
     try {
-      await encryptAndSendTicket(transactionData);
-      alert("加密並送出成功！");
+      // 修改後的最後一段
+      const result = await encryptAndSendTicket(transactionData);
+
+      const ticketInfo = {
+        code: result.code,  // 若後端有回傳票券 ID，請使用那個
+        qr: result.qr,
+        movie: selectedMovie.name,
+        seat: selectedSeat,
+        amount: price,
+        balance: result.balance // 假設後端有回傳餘額
+      };
+      console.log("回傳票券資訊", result);
+      alert("購票成功！");
+      onSuccess(ticketInfo); // 通知 App 切換到成功頁面
     } catch (err) {
       console.error("加密或送出失敗", err);
-      alert("失敗，請檢查控制台");
+      alert(err.message); // ✅ 顯示詳細原因
     }
   };
 

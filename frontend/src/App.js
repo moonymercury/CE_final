@@ -2,6 +2,9 @@ import React, { useState, useEffect } from "react";
 import TicketPurchaseForm from "./choose";
 import LoginForm from "./LoginForm";
 import RegisterForm from "./RegisterForm";
+import SuccessPage from "./SuccessPage";
+import HistoryPage from "./HistoryPage";
+import TicketDetailPage from "./TicketDetailPage"; // 新增
 import "./App.css";
 
 function App() {
@@ -9,6 +12,9 @@ function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [username, setUsername] = useState("");
   const [movieList, setMovieList] = useState([]);
+  const [successData, setSuccessData] = useState(null);
+  const [selectedTicket, setSelectedTicket] = useState(null);
+
 
   const handleLoginSuccess = (user) => {
     setIsLoggedIn(true);
@@ -45,6 +51,12 @@ function App() {
             登出
           </button>
         )}
+        {isLoggedIn && (
+          <>
+            <button onClick={() => setPage("ticket")}>購票</button>
+            <button onClick={() => {setPage("history"); setSelectedTicket(null); }}>購票紀錄</button>
+          </>
+        )}
       </nav>
 
 
@@ -53,9 +65,25 @@ function App() {
       )}
       {page === "register" && <RegisterForm onRegisterSuccess={() => setPage("login")} />}
       {page === "ticket" && isLoggedIn && (
-        <TicketPurchaseForm movieList={movieList} />
+        <TicketPurchaseForm
+          movieList={movieList}
+          onSuccess={(ticketInfo) => {
+            setSuccessData(ticketInfo);
+            setPage("success");
+          }}
+        />
       )}
-      
+      {page === "success" && <SuccessPage ticket={successData} />}
+      {page === "history" && !selectedTicket && (
+        <HistoryPage onSelectTicket={(ticket) => setSelectedTicket(ticket)} />
+      )}
+
+      {page === "history" && selectedTicket && (
+        <TicketDetailPage
+          ticket={selectedTicket}
+          onBack={() => setSelectedTicket(null)}
+        />
+      )}
     </div>
   );
 }

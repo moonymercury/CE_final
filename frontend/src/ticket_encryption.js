@@ -77,9 +77,33 @@ export async function encryptAndSendTicket(transactionData) {
     
     signature: signatureHex
   };
-  await fetch("http://127.0.0.1:5000/submit-ticket", {
+  const response = await fetch("http://127.0.0.1:5000/submit-ticket", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload)
   });
+
+  if (!response.ok) {
+    let errorMsg = "送出票券失敗";
+    try {
+      const errJson = await response.json();
+      if (errJson.error && errJson.balance) {
+        errorMsg = `${errJson.error}`;
+      } else if (errJson.error) {
+        errorMsg = errJson.error;
+      }
+    } catch (_) {
+      // ignore parse error
+    }
+    throw new Error(errorMsg);
+  }
+
+  const ticketJson = await response.json();
+  console.log("submit-ticket 回傳 JSON：", ticketJson);
+
+  return {
+    code: ticketJson.ticket_code,
+    qr: ticketJson.qr_code,   // ✅ 加這一行
+    balance: ticketJson.balance
+  };
 }

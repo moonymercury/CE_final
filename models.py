@@ -12,7 +12,7 @@ class User(db.Model):
     password_hash = db.Column(db.LargeBinary, nullable=False)     # 登入密碼 hash
     tx_password_hash = db.Column(db.LargeBinary, nullable=False)  # 交易密碼 hash
     public_key = db.Column(db.Text, nullable=False)               # RSA 公開金鑰
-    balance = db.Column(db.Integer, nullable=False, default=1000)    # 儲值金
+    balance = db.Column(db.Integer, nullable=False, default=10000)    # 儲值金
     tickets = db.relationship('Ticket', backref='user', lazy=True)
 
 # 電影與座位資料表
@@ -34,3 +34,4 @@ class Ticket(db.Model):
     seat = db.Column(db.String(20), nullable=False)
     amount = db.Column(db.Integer, nullable=False)
     status = db.Column(db.String(20), default='valid')  # valid / used / canceled
+    qr_code = db.Column(db.String(128), unique=True)

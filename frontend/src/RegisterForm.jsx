@@ -14,7 +14,7 @@ function RegisterForm({ onKeyGenerated, onRegisterSuccess }) {
   };
 
   const handleRegister = async () => {
-    setStatus("🔐 產生金鑰中...");
+    setStatus("產生金鑰中...");
     const keyPair = await window.crypto.subtle.generateKey(
       {
         name: "RSASSA-PKCS1-v1_5",
@@ -29,7 +29,7 @@ function RegisterForm({ onKeyGenerated, onRegisterSuccess }) {
     const spki = await window.crypto.subtle.exportKey("spki", keyPair.publicKey);
     const pemPublicKey = arrayBufferToPem(spki);
 
-    setStatus("📤 傳送註冊資訊...");
+    setStatus("傳送註冊資訊...");
     const res = await fetch("http://localhost:5000/register", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -43,7 +43,7 @@ function RegisterForm({ onKeyGenerated, onRegisterSuccess }) {
 
     const result = await res.json();
     if (res.ok) {
-        alert("✅ 註冊成功");
+        alert("註冊成功");
         const pkcs8 = await window.crypto.subtle.exportKey("pkcs8", keyPair.privateKey);
         localStorage.setItem("privateKey", btoa(String.fromCharCode(...new Uint8Array(pkcs8))));
         const blob = new Blob([new Uint8Array(pkcs8)], { type: "application/octet-stream" });
@@ -55,14 +55,14 @@ function RegisterForm({ onKeyGenerated, onRegisterSuccess }) {
         URL.revokeObjectURL(url);
         onRegisterSuccess();
     } else {
-      alert("❌ 註冊失敗：" + result.error);
+      alert("註冊失敗：" + result.error);
     }
     setStatus("");
   };
 
   return (
     <div>
-      <h2>📝 註冊帳號</h2>
+      <h2>註冊帳號</h2>
       <input placeholder="帳號" value={username} onChange={(e) => setUsername(e.target.value)} />
       <input type="password" placeholder="登入密碼" value={password} onChange={(e) => setPassword(e.target.value)} />
       <input type="password" placeholder="交易密碼" value={txPassword} onChange={(e) => setTxPassword(e.target.value)} />

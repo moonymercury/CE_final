@@ -136,8 +136,10 @@ def submit_ticket():
             return jsonify({"error": "餘額不足", "balance": str(user.balance)}), 400
         # 建立票券
         ticket_code = "TICKET-" + ''.join(random.choices(string.ascii_uppercase + string.digits, k=8))
+        qr_code = "QR-" + ''.join(random.choices(string.ascii_uppercase + string.digits, k=32))  # longer random
         ticket = Ticket(
             code=ticket_code,
+            qr_code=qr_code,
             user_id=user.id,
             movie=seat_entry.movie,
             seat=seat_entry.seat_code,
@@ -153,9 +155,11 @@ def submit_ticket():
         return jsonify({
             "success": True,
             "ticket_code": ticket_code,
+            "qr_code": qr_code,
             "movie": ticket.movie,
             "seat": ticket.seat,
-            "amount": ticket.amount
+            "amount": ticket.amount,
+            "balance": user.balance
         })
     except Exception as e:
         return jsonify({"error": "交易失敗", "detail": str(e)}), 500
@@ -213,6 +217,22 @@ def get_movies():
     movie_names = db.session.query(MovieSeat.movie).distinct().all()
     return jsonify([
         {"id": m.movie, "name": m.movie} for m in movie_names
+    ])
+
+@app.route("/history/<username>")
+def get_purchase_history(username):
+    user = User.query.filter_by(username=username).first()
+    if not user:
+        return jsonify({"error": "找不到使用者"}), 404
+
+    tickets = Ticket.query.filter_by(user_id=user.id).all()
+    return jsonify([
+        {
+            "code": t.code,
+            "movie": t.movie,
+            "seat": t.seat,
+            "amount": t.amount
+        } for t in tickets
     ])
 
 if __name__ == "__main__":
