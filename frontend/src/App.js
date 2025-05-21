@@ -5,6 +5,7 @@ import RegisterForm from "./RegisterForm";
 import SuccessPage from "./SuccessPage";
 import HistoryPage from "./HistoryPage";
 import TicketDetailPage from "./TicketDetailPage"; // 新增
+import ClaimTicketForm from "./ClaimTicket";
 import "./App.css";
 
 function App() {
@@ -55,6 +56,7 @@ function App() {
           <>
             <button onClick={() => setPage("ticket")}>購票</button>
             <button onClick={() => {setPage("history"); setSelectedTicket(null); }}>購票紀錄</button>
+            <button onClick={() => setPage("claim")}>認領票券</button>
           </>
         )}
       </nav>
@@ -84,6 +86,7 @@ function App() {
           onBack={() => setSelectedTicket(null)}
         />
       )}
+      {page === "claim" && isLoggedIn && <ClaimTicketForm />}
     </div>
   );
 }

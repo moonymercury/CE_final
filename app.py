@@ -9,6 +9,7 @@ from Crypto.Hash import SHA256
 from Crypto.PublicKey import RSA
 import random, string
 from flask import redirect
+from datetime import datetime, timedelta
 
 CORS(app)  # ← 加這行就能允許所有來源 (開發用安全即可)
 
@@ -235,6 +236,75 @@ def get_purchase_history(username):
             "amount": t.amount
         } for t in tickets
     ])
+@app.route("/claim-ticket", methods=["POST"])
+def claim_ticket():
+    from models import TransferLog
+    import json
+    data = request.json
+    payload = data["payload"]
+    signature = data["signature"]
+    username = data["username"]
+
+    ticket_code = payload["ticket_code"]
+    from_user = payload["from"]
+    nonce = payload["nonce"]
+    timestamp = payload["timestamp"]
+
+    from models import User, Ticket
+    user = User.query.filter_by(username=from_user).first()
+    if not user:
+        return jsonify({"error": "轉讓者不存在"}), 404
+
+    try:
+        from Crypto.Signature import pkcs1_15
+        from Crypto.PublicKey import RSA
+        from Crypto.Hash import SHA256
+
+        pubkey = RSA.import_key(user.public_key)
+        h = SHA256.new(json.dumps(payload).encode())
+        pkcs1_15.new(pubkey).verify(h, bytes.fromhex(signature))
+    except Exception:
+        return jsonify({"error": "簽章驗證失敗"}), 403
+
+    ticket = Ticket.query.filter_by(code=ticket_code).first()
+    if not ticket or ticket.user_id != user.id:
+        return jsonify({"error": "票券不存在或非該用戶擁有"}), 400
+
+    if ticket.status != "valid":
+        return jsonify({"error": "票券已使用或無效"}), 400
+
+    if TransferLog.query.filter_by(ticket_code=ticket_code).first():
+        return jsonify({"error": "票券已被認領"}), 400
+
+    recipient = User.query.filter_by(username=username).first()
+    if not recipient:
+        return jsonify({"error": "使用者不存在"}), 404
+    
+    claim_time = datetime.utcnow()
+    transfer_time = datetime.fromisoformat(payload["timestamp"])
+    if claim_time - transfer_time > timedelta(minutes=10):
+        return jsonify({"error": "轉讓碼已過期"}), 403
+    
+    if TransferLog.query.filter_by(nonce=payload["nonce"]).first():
+        return jsonify({"error": "此轉讓碼已使用"}), 400
+
+    # 更新票券持有人
+    ticket.user_id = recipient.id
+    db.session.commit()
+
+    # 寫入轉讓紀錄
+    log = TransferLog(
+        ticket_code=ticket_code,
+        from_user=from_user,
+        to_user=username,
+        signature=signature,
+        timestamp=timestamp
+    )
+    db.session.add(log)
+    db.session.commit()
+
+    return jsonify({"message": "認領成功", "ticket_code": ticket_code})
+
 
 if __name__ == "__main__":
     app.run(debug=True)

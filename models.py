@@ -35,3 +35,12 @@ class Ticket(db.Model):
     amount = db.Column(db.Integer, nullable=False)
     status = db.Column(db.String(20), default='valid')  # valid / used / canceled
     qr_code = db.Column(db.String(128), unique=True)
+
+class TransferLog(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    ticket_code = db.Column(db.String(20), nullable=False)
+    from_user = db.Column(db.String(80), nullable=False)
+    to_user = db.Column(db.String(80), nullable=False)
+    nonce = db.Column(db.String(64), unique=True, nullable=False)
+    signature = db.Column(db.Text, nullable=False)
+    timestamp = db.Column(db.String(50), nullable=False)

@@ -1,5 +1,6 @@
 import React from "react";
 import { QRCode } from "react-qrcode-logo";
+import GenerateTransferCode from "./GenerateTransferCode";
 
 function SuccessPage({ ticket }) {
   if (!ticket) return <p>無票券資料。</p>;
@@ -22,6 +23,7 @@ function SuccessPage({ ticket }) {
         <p><strong>票價：</strong>{amount} 元</p>
         <p><strong>儲值金餘額：</strong>{balance} 元</p>
       </div>
+      <GenerateTransferCode ticketCode={code} />
     </div>
   );
 }
