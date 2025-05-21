@@ -5,8 +5,8 @@ import { QRCode } from "react-qrcode-logo"; // or "react-qrcode-logo"
 function TicketDetailPage({ ticket, onBack }) {
   if (!ticket) return <p>無票券資料</p>;
 
-  const { code, movie, seat, amount } = ticket;
-  const qrData = `${code}`;
+  const { code, qr_code, movie, seat, amount } = ticket;
+  const qrData = `${qr_code}`;
 
   return (
     <div style={{ textAlign: "center", padding: "2rem" }}>

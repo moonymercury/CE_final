@@ -229,6 +229,7 @@ def get_purchase_history(username):
     return jsonify([
         {
             "code": t.code,
+            "qr_code": t.qr_code,
             "movie": t.movie,
             "seat": t.seat,
             "amount": t.amount
