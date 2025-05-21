@@ -86,7 +86,9 @@ function App() {
           onBack={() => setSelectedTicket(null)}
         />
       )}
-      {page === "claim" && isLoggedIn && <ClaimTicketForm />}
+      {page === "claim" && isLoggedIn && (
+        <ClaimTicketForm onSuccess={() => { setPage("history"); setSelectedTicket(null); }} />
+      )}
     </div>
   );
 }

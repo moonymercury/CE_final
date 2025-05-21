@@ -1,26 +1,23 @@
 import React, { useState } from "react";
 
-function ClaimTicketForm() {
+function ClaimTicketForm({ onSuccess }) {
   const [username, setUsername] = useState(localStorage.getItem("username") || "");
   const [ticketCode, setTicketCode] = useState("");
-  const [transferJson, setTransferJson] = useState("");
+  const [transferCode, setTransferCode] = useState("");
 
   const handleClaim = async () => {
     try {
-      const { payload, signature } = JSON.parse(transferJson);
-      const res = await fetch("http://localhost:5000/claim-ticket", {
+
+      const res = await fetch("/claim-ticket", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          username,
-          payload,
-          signature
-        })
+        body: JSON.stringify({ code: transferCode, username })  // B 的 username
       });
 
       const result = await res.json();
       if (res.ok) {
         alert("✅ 認領成功：" + result.ticket_code);
+        onSuccess();
       } else {
         alert("❌ 認領失敗：" + result.error);
       }
@@ -33,7 +30,13 @@ function ClaimTicketForm() {
     <div>
       <h2>🎫 認領票券</h2>
       <input placeholder="票券代碼" value={ticketCode} onChange={(e) => setTicketCode(e.target.value)} />
-      <textarea placeholder="請貼上轉讓碼 JSON" rows={6} style={{ width: "100%" }} value={transferJson} onChange={(e) => setTransferJson(e.target.value)} />
+      <textarea
+        placeholder="請輸入轉讓碼"
+        rows={3}
+        style={{ width: "100%" }}
+        value={transferCode}
+        onChange={(e) => setTransferCode(e.target.value)}
+      />
       <button onClick={handleClaim}>認領</button>
     </div>
   );

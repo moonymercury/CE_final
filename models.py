@@ -1,5 +1,6 @@
 from flask_sqlalchemy import SQLAlchemy
 from flask import Flask
+from datetime import datetime
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///users.db'
@@ -44,3 +45,9 @@ class TransferLog(db.Model):
     nonce = db.Column(db.String(64), unique=True, nullable=False)
     signature = db.Column(db.Text, nullable=False)
     timestamp = db.Column(db.String(50), nullable=False)
+
+class TransferCodeStore(db.Model):
+    code = db.Column(db.String(24), primary_key=True)
+    payload = db.Column(db.Text, nullable=False)
+    signature = db.Column(db.Text, nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)

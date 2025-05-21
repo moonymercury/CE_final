@@ -9,7 +9,9 @@ from Crypto.Hash import SHA256
 from Crypto.PublicKey import RSA
 import random, string
 from flask import redirect
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
+from models import TransferCodeStore, TransferLog
+import json
 
 CORS(app)  # ← 加這行就能允許所有來源 (開發用安全即可)
 
@@ -220,11 +222,27 @@ def get_movies():
         {"id": m.movie, "name": m.movie} for m in movie_names
     ])
 
-@app.route("/history/<username>")
-def get_purchase_history(username):
+@app.route("/history", methods=["POST"])
+def get_purchase_history():
+    data = request.json
+    username = data.get("username")
+    signature = data.get("signature")
+
     user = User.query.filter_by(username=username).first()
     if not user:
         return jsonify({"error": "找不到使用者"}), 404
+
+    # 驗證簽章
+    try:
+        from Crypto.Signature import pkcs1_15
+        from Crypto.PublicKey import RSA
+        from Crypto.Hash import SHA256
+
+        pubkey = RSA.import_key(user.public_key)
+        h = SHA256.new(username.encode())  # 對 username 字串簽章驗證
+        pkcs1_15.new(pubkey).verify(h, bytes.fromhex(signature))
+    except Exception:
+        return jsonify({"error": "簽章驗證失敗"}), 403
 
     tickets = Ticket.query.filter_by(user_id=user.id).all()
     return jsonify([
@@ -236,34 +254,44 @@ def get_purchase_history(username):
             "amount": t.amount
         } for t in tickets
     ])
+    
 @app.route("/claim-ticket", methods=["POST"])
 def claim_ticket():
-    from models import TransferLog
-    import json
     data = request.json
-    payload = data["payload"]
-    signature = data["signature"]
     username = data["username"]
+    code = data["code"]
 
-    ticket_code = payload["ticket_code"]
-    from_user = payload["from"]
-    nonce = payload["nonce"]
-    timestamp = payload["timestamp"]
+    store = TransferCodeStore.query.get(code)
+    if not store:
+        return jsonify({"error": "無此轉讓碼"}), 404
 
-    from models import User, Ticket
+    payload = json.loads(store.payload)
+    signature = store.signature
+
+    from_user = payload["f"]
+    ticket_code = payload["c"]
+    nonce = payload["n"]
+    timestamp = payload["t"]
+
     user = User.query.filter_by(username=from_user).first()
     if not user:
-        return jsonify({"error": "轉讓者不存在"}), 404
+        return jsonify({"error": "無原持有人"}), 404
 
     try:
-        from Crypto.Signature import pkcs1_15
-        from Crypto.PublicKey import RSA
-        from Crypto.Hash import SHA256
-
+        payload_str = json.dumps(payload, separators=(",", ":"))
+        print("🔍 後端驗章 payload_str =", payload_str)
         pubkey = RSA.import_key(user.public_key)
-        h = SHA256.new(json.dumps(payload).encode())
-        pkcs1_15.new(pubkey).verify(h, bytes.fromhex(signature))
-    except Exception:
+        h = SHA256.new(json.dumps(payload, separators=(",", ":")).encode())
+        import base64
+
+        def pad_base64url(s):
+            return s + "=" * (-len(s) % 4)
+
+        sig_bytes = base64.urlsafe_b64decode(pad_base64url(signature))
+        pkcs1_15.new(pubkey).verify(h, sig_bytes)
+    except Exception as e:
+        print("❌ 驗章失敗，簽章前 20 =", signature[:20])
+        print("❌ 驗章失敗，錯誤訊息 =", str(e))
         return jsonify({"error": "簽章驗證失敗"}), 403
 
     ticket = Ticket.query.filter_by(code=ticket_code).first()
@@ -280,12 +308,12 @@ def claim_ticket():
     if not recipient:
         return jsonify({"error": "使用者不存在"}), 404
     
-    claim_time = datetime.utcnow()
-    transfer_time = datetime.fromisoformat(payload["timestamp"])
+    transfer_time = datetime.fromisoformat(timestamp.replace("Z", "+00:00"))
+    claim_time = datetime.now(timezone.utc)
     if claim_time - transfer_time > timedelta(minutes=10):
         return jsonify({"error": "轉讓碼已過期"}), 403
     
-    if TransferLog.query.filter_by(nonce=payload["nonce"]).first():
+    if TransferLog.query.filter_by(nonce=nonce).first():
         return jsonify({"error": "此轉讓碼已使用"}), 400
 
     # 更新票券持有人
@@ -297,14 +325,34 @@ def claim_ticket():
         ticket_code=ticket_code,
         from_user=from_user,
         to_user=username,
+        nonce=nonce,
         signature=signature,
         timestamp=timestamp
     )
     db.session.add(log)
     db.session.commit()
 
+    # 最後刪掉已用過的轉讓碼
+    db.session.delete(store)
+    db.session.commit()
+
     return jsonify({"message": "認領成功", "ticket_code": ticket_code})
 
+@app.route("/store-transfer", methods=["POST"])
+def store_transfer():
+    data = request.json
+    code = data["code"]
+    payload = json.dumps(data["payload"])
+    signature = data["signature"]
+
+    if TransferCodeStore.query.get(code):
+        return jsonify({"error": "代碼已存在"}), 400
+
+    entry = TransferCodeStore(code=code, payload=payload, signature=signature)
+    db.session.add(entry)
+    db.session.commit()
+    print("🔍 後端收到簽章前20 =", signature[:20])
+    return jsonify({"message": "儲存成功"})
 
 if __name__ == "__main__":
     app.run(debug=True)

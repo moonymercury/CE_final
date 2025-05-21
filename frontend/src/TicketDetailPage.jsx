@@ -1,6 +1,7 @@
 // TicketDetailPage.jsx
 import React from "react";
 import { QRCode } from "react-qrcode-logo"; // or "react-qrcode-logo"
+import GenerateTransferCode from "./GenerateTransferCode";
 
 function TicketDetailPage({ ticket, onBack }) {
   if (!ticket) return <p>無票券資料</p>;
@@ -18,6 +19,7 @@ function TicketDetailPage({ ticket, onBack }) {
         <p><strong>座位：</strong>{seat}</p>
         <p><strong>票價：</strong>{amount} 元</p>
       </div>
+      <GenerateTransferCode ticketCode={code} />
       <button onClick={onBack}>返回紀錄列表</button>
     </div>
   );
