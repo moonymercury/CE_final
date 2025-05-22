@@ -16,10 +16,10 @@ function ClaimTicketForm({ onSuccess }) {
 
       const result = await res.json();
       if (res.ok) {
-        alert("✅ 認領成功：" + result.ticket_code);
+        alert("認領成功：" + result.ticket_code);
         onSuccess();
       } else {
-        alert("❌ 認領失敗：" + result.error);
+        alert("認領失敗：" + result.error);
       }
     } catch (err) {
       alert("轉讓碼格式錯誤");
@@ -28,7 +28,7 @@ function ClaimTicketForm({ onSuccess }) {
 
   return (
     <div>
-      <h2>🎫 認領票券</h2>
+      <h2>認領票券</h2>
       <input placeholder="票券代碼" value={ticketCode} onChange={(e) => setTicketCode(e.target.value)} />
       <textarea
         placeholder="請輸入轉讓碼"
