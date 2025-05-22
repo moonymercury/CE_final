@@ -20,7 +20,7 @@ class User(db.Model):
 class MovieSeat(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     movie = db.Column(db.String(100), nullable=False)
-    showtime = db.Column(db.String(50), nullable=False)  # 放映時間（可調整格式）
+    showtime = db.Column(db.String(50), nullable=False)  # 放映時間
     seat_code = db.Column(db.String(10), nullable=False)
     price = db.Column(db.Integer, nullable=False)
     status = db.Column(db.String(20), nullable=False, default='available')  # available / sold

@@ -83,7 +83,7 @@ function GenerateTransferCode({ ticketCode }) {
       <pre style={{ whiteSpace: "pre-wrap", wordBreak: "break-all", background: "#f8f8f8", padding: "1em" }}>
         {transferCode}
       </pre>
-      <p>請將這段短碼提供給接收者，在 10 分鐘內完成認領</p>
+      <p>請將轉讓代碼及票券代碼提供給接收者，在 10 分鐘內完成認領</p>
     </div>
   );
 }

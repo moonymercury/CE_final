@@ -10,4 +10,4 @@ with app.app_context():
     Ticket.query.delete()
 
     db.session.commit()
-    print("✅ 所有座位已重設為 available，票券清除完成")
+    print("所有座位已重設為 available，票券清除完成")

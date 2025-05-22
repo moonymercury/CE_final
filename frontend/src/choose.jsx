@@ -52,23 +52,22 @@ function TicketPurchaseForm({ movieList, onSuccess }) {
     };
 
     try {
-      // 修改後的最後一段
       const result = await encryptAndSendTicket(transactionData);
 
       const ticketInfo = {
-        code: result.code,  // 若後端有回傳票券 ID，請使用那個
+        code: result.code,  // 回傳票券ID
         qr: result.qr,
         movie: selectedMovie.name,
         seat: selectedSeat,
         amount: price,
-        balance: result.balance // 假設後端有回傳餘額
+        balance: result.balance // 回傳餘額
       };
       console.log("回傳票券資訊", result);
       alert("購票成功！");
       onSuccess(ticketInfo); // 通知 App 切換到成功頁面
     } catch (err) {
       console.error("加密或送出失敗", err);
-      alert(err.message); // ✅ 顯示詳細原因
+      alert(err.message); 
     }
   };
 

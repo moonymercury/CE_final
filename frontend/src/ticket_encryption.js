@@ -103,7 +103,7 @@ export async function encryptAndSendTicket(transactionData) {
 
   return {
     code: ticketJson.ticket_code,
-    qr: ticketJson.qr_code,   // ✅ 加這一行
+    qr: ticketJson.qr_code,
     balance: ticketJson.balance
   };
 }

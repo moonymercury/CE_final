@@ -38,11 +38,11 @@ with app.app_context():
     # 清空舊資料
     db.session.query(MovieSeat).delete()
     db.session.commit()
-    print("🗑️ 舊有座位資料已清空")
+    print("舊有座位資料已清空")
 
     # 新增新資料
     for seat in sample_seats:
         s = MovieSeat(**seat)
         db.session.add(s)
     db.session.commit()
-    print(f"✅ 新增完成，共 {len(sample_seats)} 筆座位資料")
+    print(f"新增完成，共 {len(sample_seats)} 筆座位資料")

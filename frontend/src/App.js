@@ -4,7 +4,7 @@ import LoginForm from "./LoginForm";
 import RegisterForm from "./RegisterForm";
 import SuccessPage from "./SuccessPage";
 import HistoryPage from "./HistoryPage";
-import TicketDetailPage from "./TicketDetailPage"; // 新增
+import TicketDetailPage from "./TicketDetailPage";
 import ClaimTicketForm from "./ClaimTicket";
 import "./App.css";
 
@@ -19,7 +19,7 @@ function App() {
 
   const handleLoginSuccess = (user) => {
     setIsLoggedIn(true);
-    setUsername(user); // 若你要紀錄當前使用者
+    setUsername(user); // 紀錄當前使用者
     localStorage.setItem("username", user);
     setPage("ticket");
   };

@@ -1,7 +1,7 @@
 from flask import Flask, request, jsonify
 from models import db, app, User, Ticket, MovieSeat
 import os
-from flask_cors import CORS  # ← 新增這行
+from flask_cors import CORS
 from kms_utils import request_kms_decryption
 import bcrypt
 from Crypto.Signature import pkcs1_15
@@ -13,7 +13,7 @@ from datetime import datetime, timedelta, timezone
 from models import TransferCodeStore, TransferLog
 import json
 
-CORS(app)  # ← 加這行就能允許所有來源 (開發用安全即可)
+CORS(app)  # 允許所有來源
 
 @app.route("/register", methods=["POST"])
 def register():
@@ -175,7 +175,7 @@ def encrypt_session_key():
     raw_key = base64.b64decode(data["session_key"])
 
     response = kms.encrypt(
-        KeyId="alias/session-key",  # 替換成你的 KMS key alias 或 key ID
+        KeyId="alias/session-key",  # KMS key alias 或 key ID
         Plaintext=raw_key
     )
 
@@ -290,8 +290,8 @@ def claim_ticket():
         sig_bytes = base64.urlsafe_b64decode(pad_base64url(signature))
         pkcs1_15.new(pubkey).verify(h, sig_bytes)
     except Exception as e:
-        print("❌ 驗章失敗，簽章前 20 =", signature[:20])
-        print("❌ 驗章失敗，錯誤訊息 =", str(e))
+        print("驗章失敗，簽章前 20 =", signature[:20])
+        print("驗章失敗，錯誤訊息 =", str(e))
         return jsonify({"error": "簽章驗證失敗"}), 403
 
     ticket = Ticket.query.filter_by(code=ticket_code).first()
